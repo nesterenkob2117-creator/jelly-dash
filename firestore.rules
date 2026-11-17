@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == request.auth.uid && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 160
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLevel(data) {
+      return data.keys().hasAll([
+          'id', 'title', 'authorUid', 'authorName', 'description', 'difficulty',
+          'bpm', 'baseSpeed', 'lengthUnits', 'ceilingGy', 'accentColor',
+          'bgTop', 'bgBottom', 'groundColor', 'gridColor', 'musicKey',
+          'objects', 'published', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'title', 'authorUid', 'authorName', 'description', 'difficulty',
+          'bpm', 'baseSpeed', 'lengthUnits', 'ceilingGy', 'accentColor',
+          'bgTop', 'bgBottom', 'groundColor', 'gridColor', 'musicKey',
+          'objects', 'published', 'likes', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 40
+        && data.authorUid is string && data.authorUid == request.auth.uid && data.authorUid.size() >= 1 && data.authorUid.size() <= 128
+        && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60
+        && data.description is string && data.description.size() <= 200
+        && data.difficulty in ['Легкий', 'Средний', 'Сложный', 'Классика']
+        && data.bpm is number && data.bpm >= 60 && data.bpm <= 240
+        && data.baseSpeed is number && data.baseSpeed >= 4 && data.baseSpeed <= 15
+        && data.lengthUnits is number && data.lengthUnits >= 20 && data.lengthUnits <= 1000
+        && data.ceilingGy is number && data.ceilingGy >= 6 && data.ceilingGy <= 20
+        && data.accentColor is string && data.accentColor.size() >= 1 && data.accentColor.size() <= 32
+        && data.bgTop is string && data.bgTop.size() >= 1 && data.bgTop.size() <= 32
+        && data.bgBottom is string && data.bgBottom.size() >= 1 && data.bgBottom.size() <= 32
+        && data.groundColor is string && data.groundColor.size() >= 1 && data.groundColor.size() <= 32
+        && data.gridColor is string && data.gridColor.size() >= 1 && data.gridColor.size() <= 64
+        && data.musicKey in ['strawberry', 'mint', 'mango', 'stereo']
+        && data.objects is list && data.objects.size() >= 1 && data.objects.size() <= 2500 && data.objects[0] is map
+        && data.published is bool && data.published == true
+        && (!('likes' in data) || (data.likes is int && data.likes >= 0 && data.likes <= 10000000))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUser(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']);
+      allow delete: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    match /levels/{levelId} {
+      allow get: if isValidId(levelId) && existing().published == true;
+      allow list: if existing().published == true;
+      allow create: if isVerifiedUser()
+        && isValidId(levelId)
+        && isValidLevel(incoming())
+        && incoming().id == levelId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(levelId)
+        && existing().authorUid == request.auth.uid
+        && isValidLevel(incoming())
+        && incoming().id == existing().id
+        && incoming().authorUid == existing().authorUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'description', 'difficulty', 'bpm', 'baseSpeed',
+          'lengthUnits', 'ceilingGy', 'accentColor', 'bgTop', 'bgBottom',
+          'groundColor', 'gridColor', 'musicKey', 'objects', 'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(levelId) && existing().authorUid == request.auth.uid;
+    }
+  }
+}

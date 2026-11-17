@@ -1,0 +1,6 @@
+{
+  "name": "Jelly Dash",
+  "description": "Ритм-платформер в стиле Geometry Dash с мягкой физикой желе, батутами, сменой гравитации и режимом практики.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated player registration profile stored privately per user",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player display name",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified account email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Optional avatar URL",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp"
+        }
+      },
+      "required": ["uid", "displayName", "email", "createdAt", "updatedAt"]
+    },
+    "PublishedLevel": {
+      "title": "PublishedLevel",
+      "description": "Community playable level published by a registered player",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Level document ID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Level title",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "Publisher Firebase UID",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Public display name of author",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "description": {
+          "type": "string",
+          "description": "Short level description",
+          "maxLength": 200
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": ["Легкий", "Средний", "Сложный", "Классика"]
+        },
+        "bpm": {
+          "type": "number"
+        },
+        "baseSpeed": {
+          "type": "number"
+        },
+        "lengthUnits": {
+          "type": "number"
+        },
+        "ceilingGy": {
+          "type": "number"
+        },
+        "accentColor": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "bgTop": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "bgBottom": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "groundColor": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "gridColor": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "musicKey": {
+          "type": "string",
+          "enum": ["strawberry", "mint", "mango", "stereo"]
+        },
+        "objects": {
+          "type": "array",
+          "description": "Bounded list of level objects (max 2500)"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "likes": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "authorUid",
+        "authorName",
+        "description",
+        "difficulty",
+        "bpm",
+        "baseSpeed",
+        "lengthUnits",
+        "ceilingGy",
+        "accentColor",
+        "bgTop",
+        "bgBottom",
+        "groundColor",
+        "gridColor",
+        "musicKey",
+        "objects",
+        "published",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private player registration profile isolated to the authenticated owner"
+    },
+    "/levels/{levelId}": {
+      "schema": { "$ref": "#/entities/PublishedLevel" },
+      "description": "Published community levels searchable and playable by players, writable only by verified author"
+    }
+  }
+}
